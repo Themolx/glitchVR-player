@@ -627,9 +627,9 @@ function makeCurvedScreen(width, height, radius, segments) {
       const b = a + 1;
       const c = a + (segsX + 1);
       const d = c + 1;
-      // Wind faces inward (toward camera at origin)
-      indices.push(a, b, c);
-      indices.push(b, d, c);
+      // Front faces point inward (toward camera at origin)
+      indices.push(a, c, b);
+      indices.push(b, c, d);
     }
   }
 
