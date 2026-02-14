@@ -1,0 +1,32 @@
+glitch3d render info
+====================
+
+Date:           2026-02-14
+Version:        v001
+Mode:           temporal
+
+Source
+------
+File:           /Users/martintomek/.gemini/antigravity/scratch/glitchVR/in/video/240225_Feedback_1.mp4
+Resolution:     720x576
+FPS:            50.0
+Duration:       00:00:06
+Codec:          h264
+
+Settings
+--------
+Delay:          5 frames
+Direction:      right
+Blend:          0.3
+Combine RGB:    no
+Layout:         sbs
+Half:           no
+
+Output
+------
+Full file:      260214_temporal_d5_blend0.3_sbs_v001.mp4
+Preview file:   260214_temporal_d5_blend0.3_sbs_v001_preview.mp4
+
+FFmpeg Command
+--------------
+ffmpeg -v error -i in/video/240225_Feedback_1.mp4 -filter_complex '[0:v] split=3 [left_raw][right_raw][orig]; [right_raw] tpad=start=5:start_mode=clone [right_delayed]; [right_delayed][orig] blend=all_expr='"'"'A*0.7+B*0.3'"'"' [right_blended]; [left_raw][right_blended] framepack=sbs [out]' -map '[out]' -map '0:a?' -c:a copy -c:v libx264 -preset slow -crf 18 Export/260214/260214_temporal_d5_blend0.3_sbs_v001.mp4

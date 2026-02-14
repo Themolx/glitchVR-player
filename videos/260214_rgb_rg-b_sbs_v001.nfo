@@ -1,0 +1,32 @@
+glitch3d render info
+====================
+
+Date:           2026-02-14
+Version:        v001
+Mode:           rgb
+
+Source
+------
+File:           /Users/martintomek/.gemini/antigravity/scratch/glitchVR/in/video/240225_Feedback_8.mp4
+Resolution:     720x576
+FPS:            50.0
+Duration:       00:00:10
+Codec:          h264
+
+Settings
+--------
+Left channels:  rg
+Right channels: b
+Shift:          0
+Convergence:    0
+Layout:         sbs
+Half:           no
+
+Output
+------
+Full file:      260214_rgb_rg-b_sbs_v001.mp4
+Preview file:   260214_rgb_rg-b_sbs_v001_preview.mp4
+
+FFmpeg Command
+--------------
+ffmpeg -v error -i in/video/240225_Feedback_8.mp4 -filter_complex '[0:v] format=rgb24, split=2 [a][b]; [a] colorchannelmixer=rr=1:gg=1:bb=0 [left]; [b] colorchannelmixer=rr=0:gg=0:bb=1 [right]; [left][right] framepack=sbs [out]' -map '[out]' -map '0:a?' -c:a copy -c:v libx264 -preset slow -crf 18 Export/260214/260214_rgb_rg-b_sbs_v001.mp4
