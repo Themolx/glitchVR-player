@@ -627,8 +627,9 @@ function makeCurvedScreen(width, height, radius, segments) {
       const b = a + 1;
       const c = a + (segsX + 1);
       const d = c + 1;
-      indices.push(a, c, b);
-      indices.push(b, c, d);
+      // Wind faces inward (toward camera at origin)
+      indices.push(a, b, c);
+      indices.push(b, d, c);
     }
   }
 
@@ -672,8 +673,8 @@ function buildStereoFlat(stereoLayout) {
     for (let i = 0; i < uvsR.length; i += 2) { uvsR[i + 1] *= 0.5; uvsR[i + 1] += 0.5; }
   }
 
-  const matL = new THREE.MeshBasicMaterial({ map: videoTexture, side: THREE.BackSide });
-  const matR = new THREE.MeshBasicMaterial({ map: videoTexture, side: THREE.BackSide });
+  const matL = new THREE.MeshBasicMaterial({ map: videoTexture });
+  const matR = new THREE.MeshBasicMaterial({ map: videoTexture });
 
   leftMesh = new THREE.Mesh(geoL, matL);
   leftMesh.layers.set(1);  // Left eye only
@@ -691,7 +692,7 @@ function buildFlat() {
   const screenH = 8;
   const screenW = screenH * aspect;
   const geo = makeCurvedScreen(screenW, screenH, 10);
-  const mat = new THREE.MeshBasicMaterial({ map: videoTexture, side: THREE.BackSide });
+  const mat = new THREE.MeshBasicMaterial({ map: videoTexture });
   flatMesh = new THREE.Mesh(geo, mat);
   flatMesh.layers.set(0);
   scene.add(flatMesh);
