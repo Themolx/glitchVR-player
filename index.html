@@ -462,8 +462,10 @@ function initThree() {
   scene.background = new THREE.Color(0x000000);
 
   camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 2000);
+  // Only enable layer 1 on main camera — desktop shows left eye as fallback.
+  // In VR, Three.js ArrayCamera sets: left eye = layers 0+1, right eye = layers 0+2.
+  // Enabling both layers here would render BOTH eyes to BOTH views = no stereo.
   camera.layers.enable(1);
-  camera.layers.enable(2);
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -588,12 +590,59 @@ function buildStereoSphere(stereoLayout) {
   scene.add(rightMesh);
 }
 
-// ── stereo flat screen (for SBS/TB from rgb and temporal modes) ──
-// Two overlapping screens at the same position. Left eye sees left half,
-// right eye sees right half. The different RGB channels in each half
-// create the stereoscopic depth perception.
+// ── curved screen geometry ──
+// Creates an inward-facing cylinder section — like an IMAX curved screen.
+// Much more immersive than a flat plane for VR viewing.
+function makeCurvedScreen(width, height, radius, segments) {
+  radius = radius || 8;
+  segments = segments || 64;
+  // Arc angle the screen subtends
+  const arc = width / radius;
+  const halfArc = arc / 2;
+  const halfH = height / 2;
+  const segsX = segments;
+  const segsY = Math.max(1, Math.round(segments * height / width));
+
+  const positions = [];
+  const uvs = [];
+  const indices = [];
+
+  for (let iy = 0; iy <= segsY; iy++) {
+    const v = iy / segsY;
+    const y = halfH - v * height;
+    for (let ix = 0; ix <= segsX; ix++) {
+      const u = ix / segsX;
+      const angle = -halfArc + u * arc;
+      // Cylinder surface, facing inward (camera at center)
+      const x = radius * Math.sin(angle);
+      const z = -radius * Math.cos(angle);
+      positions.push(x, y, z);
+      uvs.push(u, 1 - v);
+    }
+  }
+
+  for (let iy = 0; iy < segsY; iy++) {
+    for (let ix = 0; ix < segsX; ix++) {
+      const a = iy * (segsX + 1) + ix;
+      const b = a + 1;
+      const c = a + (segsX + 1);
+      const d = c + 1;
+      indices.push(a, c, b);
+      indices.push(b, c, d);
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  return geo;
+}
+
+// ── stereo curved screen (for SBS/TB from rgb and temporal modes) ──
+// Two overlapping curved screens. Left eye sees left half of the SBS frame,
+// right eye sees right half. The RGB channel difference creates depth.
 function buildStereoFlat(stereoLayout) {
-  // SBS video has both eyes packed side-by-side, so true aspect is half the frame width
   const frameW = video.videoWidth;
   const frameH = video.videoHeight;
   let eyeAspect;
@@ -603,40 +652,33 @@ function buildStereoFlat(stereoLayout) {
     eyeAspect = frameW / (frameH / 2);
   }
 
-  // Screen size in world units — large enough to feel immersive
-  const screenH = 6;
+  const screenH = 8;
   const screenW = screenH * eyeAspect;
-  const screenDist = -7;
+  const radius = 10;
 
-  // Left eye plane
-  const geoL = new THREE.PlaneGeometry(screenW, screenH);
+  // Left eye screen
+  const geoL = makeCurvedScreen(screenW, screenH, radius);
   const uvsL = geoL.attributes.uv.array;
 
-  // Right eye plane
-  const geoR = new THREE.PlaneGeometry(screenW, screenH);
+  // Right eye screen
+  const geoR = makeCurvedScreen(screenW, screenH, radius);
   const uvsR = geoR.attributes.uv.array;
 
   if (stereoLayout === 'sbs') {
-    // Left eye: sample U 0.0 → 0.5 (left half of frame)
     for (let i = 0; i < uvsL.length; i += 2) { uvsL[i] *= 0.5; }
-    // Right eye: sample U 0.5 → 1.0 (right half of frame)
     for (let i = 0; i < uvsR.length; i += 2) { uvsR[i] *= 0.5; uvsR[i] += 0.5; }
   } else if (stereoLayout === 'tb') {
-    // Left eye: sample V 0.0 → 0.5 (top half)
     for (let i = 0; i < uvsL.length; i += 2) { uvsL[i + 1] *= 0.5; }
-    // Right eye: sample V 0.5 → 1.0 (bottom half)
     for (let i = 0; i < uvsR.length; i += 2) { uvsR[i + 1] *= 0.5; uvsR[i + 1] += 0.5; }
   }
 
-  const matL = new THREE.MeshBasicMaterial({ map: videoTexture });
-  const matR = new THREE.MeshBasicMaterial({ map: videoTexture });
+  const matL = new THREE.MeshBasicMaterial({ map: videoTexture, side: THREE.BackSide });
+  const matR = new THREE.MeshBasicMaterial({ map: videoTexture, side: THREE.BackSide });
 
   leftMesh = new THREE.Mesh(geoL, matL);
-  leftMesh.position.z = screenDist;
   leftMesh.layers.set(1);  // Left eye only
 
   rightMesh = new THREE.Mesh(geoR, matR);
-  rightMesh.position.z = screenDist;
   rightMesh.layers.set(2); // Right eye only
 
   scene.add(leftMesh);
@@ -646,12 +688,11 @@ function buildStereoFlat(stereoLayout) {
 // ── mono flat screen ──
 function buildFlat() {
   const aspect = video.videoWidth / video.videoHeight;
-  const height = 6;
-  const width = height * aspect;
-  const geo = new THREE.PlaneGeometry(width, height);
-  const mat = new THREE.MeshBasicMaterial({ map: videoTexture });
+  const screenH = 8;
+  const screenW = screenH * aspect;
+  const geo = makeCurvedScreen(screenW, screenH, 10);
+  const mat = new THREE.MeshBasicMaterial({ map: videoTexture, side: THREE.BackSide });
   flatMesh = new THREE.Mesh(geo, mat);
-  flatMesh.position.z = -7;
   flatMesh.layers.set(0);
   scene.add(flatMesh);
 }
