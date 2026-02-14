@@ -534,14 +534,17 @@ function rebuildScene() {
   } else if (layout === 'mono360') {
     buildSphere();
   } else if (layout === 'sbs') {
-    buildStereoSphere('sbs');
+    buildStereoFlat('sbs');      // flat cinema screen, each eye sees its half
   } else if (layout === 'tb') {
-    buildStereoSphere('tb');
+    buildStereoFlat('tb');
   } else if (layout === 'sbs360') {
-    buildStereoSphere('sbs');
+    buildStereoSphere('sbs');    // 360° sphere, each eye sees its half
+  } else if (layout === 'tb360') {
+    buildStereoSphere('tb');
   }
 }
 
+// ── mono 360° sphere ──
 function buildSphere() {
   const geo = new THREE.SphereGeometry(500, 64, 32);
   geo.scale(-1, 1, 1);
@@ -552,6 +555,7 @@ function buildSphere() {
   scene.add(monoMesh);
 }
 
+// ── stereo 360° sphere (for equirectangular SBS/TB) ──
 function buildStereoSphere(stereoLayout) {
   const geoL = new THREE.SphereGeometry(500, 64, 32);
   geoL.scale(-1, 1, 1);
@@ -584,14 +588,70 @@ function buildStereoSphere(stereoLayout) {
   scene.add(rightMesh);
 }
 
+// ── stereo flat screen (for SBS/TB from rgb and temporal modes) ──
+// Two overlapping screens at the same position. Left eye sees left half,
+// right eye sees right half. The different RGB channels in each half
+// create the stereoscopic depth perception.
+function buildStereoFlat(stereoLayout) {
+  // SBS video has both eyes packed side-by-side, so true aspect is half the frame width
+  const frameW = video.videoWidth;
+  const frameH = video.videoHeight;
+  let eyeAspect;
+  if (stereoLayout === 'sbs') {
+    eyeAspect = (frameW / 2) / frameH;
+  } else {
+    eyeAspect = frameW / (frameH / 2);
+  }
+
+  // Screen size in world units — large enough to feel immersive
+  const screenH = 6;
+  const screenW = screenH * eyeAspect;
+  const screenDist = -7;
+
+  // Left eye plane
+  const geoL = new THREE.PlaneGeometry(screenW, screenH);
+  const uvsL = geoL.attributes.uv.array;
+
+  // Right eye plane
+  const geoR = new THREE.PlaneGeometry(screenW, screenH);
+  const uvsR = geoR.attributes.uv.array;
+
+  if (stereoLayout === 'sbs') {
+    // Left eye: sample U 0.0 → 0.5 (left half of frame)
+    for (let i = 0; i < uvsL.length; i += 2) { uvsL[i] *= 0.5; }
+    // Right eye: sample U 0.5 → 1.0 (right half of frame)
+    for (let i = 0; i < uvsR.length; i += 2) { uvsR[i] *= 0.5; uvsR[i] += 0.5; }
+  } else if (stereoLayout === 'tb') {
+    // Left eye: sample V 0.0 → 0.5 (top half)
+    for (let i = 0; i < uvsL.length; i += 2) { uvsL[i + 1] *= 0.5; }
+    // Right eye: sample V 0.5 → 1.0 (bottom half)
+    for (let i = 0; i < uvsR.length; i += 2) { uvsR[i + 1] *= 0.5; uvsR[i + 1] += 0.5; }
+  }
+
+  const matL = new THREE.MeshBasicMaterial({ map: videoTexture });
+  const matR = new THREE.MeshBasicMaterial({ map: videoTexture });
+
+  leftMesh = new THREE.Mesh(geoL, matL);
+  leftMesh.position.z = screenDist;
+  leftMesh.layers.set(1);  // Left eye only
+
+  rightMesh = new THREE.Mesh(geoR, matR);
+  rightMesh.position.z = screenDist;
+  rightMesh.layers.set(2); // Right eye only
+
+  scene.add(leftMesh);
+  scene.add(rightMesh);
+}
+
+// ── mono flat screen ──
 function buildFlat() {
   const aspect = video.videoWidth / video.videoHeight;
-  const height = 4;
+  const height = 6;
   const width = height * aspect;
   const geo = new THREE.PlaneGeometry(width, height);
   const mat = new THREE.MeshBasicMaterial({ map: videoTexture });
   flatMesh = new THREE.Mesh(geo, mat);
-  flatMesh.position.z = -5;
+  flatMesh.position.z = -7;
   flatMesh.layers.set(0);
   scene.add(flatMesh);
 }
