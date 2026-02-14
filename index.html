@@ -26,12 +26,13 @@ canvas { display: block; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   z-index: 10;
-  background: rgba(0,0,0,0.85);
+  background: rgba(0,0,0,0.92);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: opacity 0.4s;
+  overflow-y: auto;
+  padding: 2rem 1rem 4rem;
 }
 #ui.hidden { opacity: 0; pointer-events: none; }
 
@@ -40,42 +41,113 @@ canvas { display: block; }
   font-weight: 400;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  margin-top: 1rem;
   color: #fff;
+  flex-shrink: 0;
 }
+
+/* ── video gallery ── */
+#gallery {
+  width: min(95vw, 720px);
+  margin-bottom: 1.5rem;
+  flex-shrink: 0;
+}
+#gallery h2 {
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #666;
+  margin-bottom: 0.8rem;
+  padding-left: 0.2rem;
+}
+.video-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.video-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.6rem 0.8rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.video-item:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: #333;
+}
+.video-item .v-name {
+  flex: 1;
+  font-size: 0.75rem;
+  color: #ccc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.video-item .v-tag {
+  font-size: 0.6rem;
+  color: #666;
+  border: 1px solid #333;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.video-item .v-size {
+  font-size: 0.6rem;
+  color: #555;
+  flex-shrink: 0;
+  min-width: 3rem;
+  text-align: right;
+}
+.video-item .v-quality {
+  font-size: 0.55rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.video-item .v-quality.full { color: #7c9; border: 1px solid #3a5; }
+.video-item .v-quality.preview { color: #99a; border: 1px solid #556; }
 
 /* ── drop zone ── */
 #dropzone {
   width: min(90vw, 480px);
-  border: 1px dashed #444;
+  border: 1px dashed #333;
   border-radius: 8px;
-  padding: 2.5rem 1.5rem;
+  padding: 1.5rem 1.5rem;
   text-align: center;
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
+  flex-shrink: 0;
 }
 #dropzone:hover, #dropzone.dragover {
-  border-color: #888;
-  background: rgba(255,255,255,0.04);
+  border-color: #666;
+  background: rgba(255,255,255,0.03);
 }
-#dropzone p { font-size: 0.85rem; color: #999; line-height: 1.6; }
-#dropzone p span { color: #ccc; }
+#dropzone p { font-size: 0.75rem; color: #666; line-height: 1.6; }
+#dropzone p span { color: #999; }
 
 /* ── layout selector ── */
 #controls {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
   justify-content: center;
+  flex-shrink: 0;
 }
 #controls button {
   background: transparent;
   border: 1px solid #444;
   color: #ccc;
   font-family: inherit;
-  font-size: 0.75rem;
-  padding: 0.4rem 0.9rem;
+  font-size: 0.7rem;
+  padding: 0.35rem 0.8rem;
   border-radius: 4px;
   cursor: pointer;
   letter-spacing: 0.05em;
@@ -133,6 +205,14 @@ canvas { display: block; }
   border-radius: 50%;
 }
 #timecode { color: #888; min-width: 5rem; text-align: right; }
+#now-playing {
+  font-size: 0.6rem;
+  color: #555;
+  max-width: 15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* ── VR button override ── */
 #vr-button-container {
@@ -170,18 +250,22 @@ canvas { display: block; }
 <!-- UI overlay -->
 <div id="ui">
   <h1>glitchVR</h1>
+
+  <div id="gallery">
+    <h2>renders</h2>
+    <div class="video-list" id="video-list"></div>
+  </div>
+
   <div id="dropzone">
-    <p><span>drop video here</span><br>or click to browse</p>
-    <p style="margin-top:0.8rem; font-size:0.7rem; color:#666;">
-      supports SBS stereo · top-bottom · 360° equirect · mono
-    </p>
+    <p><span>or drop a local file</span></p>
     <input type="file" id="fileinput" accept="video/*" style="display:none">
   </div>
+
   <div id="controls">
     <button data-layout="sbs" class="active">SBS</button>
     <button data-layout="tb">Top-Bottom</button>
-    <button data-layout="mono360">360°</button>
-    <button data-layout="sbs360">SBS 360°</button>
+    <button data-layout="mono360">360&deg;</button>
+    <button data-layout="sbs360">SBS 360&deg;</button>
     <button data-layout="flat">Flat</button>
   </div>
 </div>
@@ -192,7 +276,8 @@ canvas { display: block; }
   <button id="btn-mute">unmute</button>
   <input type="range" id="seekbar" min="0" max="1000" value="0">
   <span id="timecode">00:00 / 00:00</span>
-  <button id="btn-back">← back</button>
+  <span id="now-playing"></span>
+  <button id="btn-back">&larr; back</button>
 </div>
 
 <div id="info">glitchVR player</div>
@@ -211,6 +296,9 @@ canvas { display: block; }
 import * as THREE from 'three';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 
+// ── video catalog (loaded from catalog.json, generated from .nfo files) ──
+let VIDEOS = [];
+
 // ── state ──
 let currentLayout = 'sbs';
 let video = null;
@@ -228,10 +316,59 @@ const playbar = document.getElementById('playbar');
 const btnPlay = document.getElementById('btn-play');
 const btnMute = document.getElementById('btn-mute');
 const seekbar = document.getElementById('seekbar');
-const timecode = document.getElementById('timecode');
+const timecodeEl = document.getElementById('timecode');
+const nowPlaying = document.getElementById('now-playing');
 const btnBack = document.getElementById('btn-back');
 const layoutButtons = document.querySelectorAll('#controls button');
 const vrContainer = document.getElementById('vr-button-container');
+const videoListEl = document.getElementById('video-list');
+
+// ── map glitch3d .nfo layout to WebXR display mode ──
+function nfoLayoutToDisplay(v) {
+  const layout = (v.layout || '').toLowerCase();
+  const mode = (v.mode || '').toLowerCase();
+  // equirect mode → 360° or stereo 360°
+  if (mode === 'equirect') {
+    return layout === 'sbs' ? 'sbs360' : 'mono360';
+  }
+  // stereo modes: sbs, tb, or anaglyph (anaglyph plays as flat)
+  if (layout === 'tb' || layout === 'tab') return 'tb';
+  if (layout === 'anaglyph') return 'flat';
+  return 'sbs';
+}
+
+// ── populate gallery from catalog.json ──
+async function loadCatalog() {
+  try {
+    const resp = await fetch('catalog.json');
+    VIDEOS = await resp.json();
+  } catch (e) {
+    console.warn('No catalog.json found, gallery empty');
+    return;
+  }
+  buildGallery();
+}
+
+function buildGallery() {
+  videoListEl.innerHTML = '';
+  VIDEOS.forEach(v => {
+    const name = v.file.split('/').pop().replace('.mp4', '');
+    const displayLayout = nfoLayoutToDisplay(v);
+    const sourceLabel = v.source ? v.source.replace('.mp4', '') : '';
+    const el = document.createElement('div');
+    el.className = 'video-item';
+    el.innerHTML = `
+      <span class="v-name" title="${sourceLabel}">${v.version} &middot; ${sourceLabel || name}</span>
+      <span class="v-quality ${v.quality}">${v.quality}</span>
+      <span class="v-tag">${v.mode} ${v.layout}</span>
+      <span class="v-size">${v.duration}</span>
+      <span class="v-size">${v.size}</span>
+    `;
+    el.addEventListener('click', () => loadRemoteVideo(v.file, displayLayout, name));
+    videoListEl.appendChild(el);
+  });
+}
+loadCatalog();
 
 // ── layout selector ──
 layoutButtons.forEach(btn => {
@@ -246,14 +383,14 @@ layoutButtons.forEach(btn => {
 // ── file input ──
 dropzone.addEventListener('click', () => fileinput.click());
 fileinput.addEventListener('change', e => {
-  if (e.target.files.length) loadVideo(e.target.files[0]);
+  if (e.target.files.length) loadLocalVideo(e.target.files[0]);
 });
 dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
 dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
 dropzone.addEventListener('drop', e => {
   e.preventDefault();
   dropzone.classList.remove('dragover');
-  if (e.dataTransfer.files.length) loadVideo(e.dataTransfer.files[0]);
+  if (e.dataTransfer.files.length) loadLocalVideo(e.dataTransfer.files[0]);
 });
 
 // ── auto-detect layout from filename ──
@@ -268,19 +405,29 @@ function detectLayout(filename) {
   return currentLayout;
 }
 
-// ── load video ──
-function loadVideo(file) {
-  // Auto-detect from filename
-  const detected = detectLayout(file.name);
-  currentLayout = detected;
-  layoutButtons.forEach(b => {
-    b.classList.toggle('active', b.dataset.layout === detected);
-  });
+function setLayout(layout) {
+  currentLayout = layout;
+  layoutButtons.forEach(b => b.classList.toggle('active', b.dataset.layout === layout));
+}
 
-  // Create video element
+// ── load remote (hosted) video ──
+function loadRemoteVideo(url, layout, label) {
+  setLayout(layout);
+  startVideo(url, label);
+}
+
+// ── load local file ──
+function loadLocalVideo(file) {
+  setLayout(detectLayout(file.name));
+  const url = URL.createObjectURL(file);
+  startVideo(url, file.name.replace('.mp4', ''));
+}
+
+// ── shared video setup ──
+function startVideo(src, label) {
   if (video) {
     video.pause();
-    URL.revokeObjectURL(video.src);
+    if (video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
   }
 
   video = document.createElement('video');
@@ -288,7 +435,9 @@ function loadVideo(file) {
   video.loop = true;
   video.muted = true;
   video.playsInline = true;
-  video.src = URL.createObjectURL(file);
+  video.src = src;
+
+  nowPlaying.textContent = label || '';
 
   video.addEventListener('loadedmetadata', () => {
     initThree();
@@ -299,11 +448,15 @@ function loadVideo(file) {
     ui.classList.add('hidden');
     playbar.classList.remove('hidden');
   });
+
+  video.addEventListener('error', () => {
+    nowPlaying.textContent = 'error loading video';
+  });
 }
 
 // ── Three.js init ──
 function initThree() {
-  if (renderer) return; // Already initialised
+  if (renderer) return;
 
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000000);
@@ -319,7 +472,6 @@ function initThree() {
   renderer.xr.setReferenceSpaceType('local');
   document.body.appendChild(renderer.domElement);
 
-  // VR button
   const vrBtn = VRButton.createButton(renderer);
   vrContainer.appendChild(vrBtn);
 
@@ -364,7 +516,6 @@ function initThree() {
 
 // ── build/rebuild scene meshes ──
 function rebuildScene() {
-  // Clean up old meshes
   [leftMesh, rightMesh, monoMesh, flatMesh].forEach(m => {
     if (m) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); }
   });
@@ -381,7 +532,7 @@ function rebuildScene() {
   if (layout === 'flat') {
     buildFlat();
   } else if (layout === 'mono360') {
-    buildSphere(false, false);
+    buildSphere();
   } else if (layout === 'sbs') {
     buildStereoSphere('sbs');
   } else if (layout === 'tb') {
@@ -391,48 +542,31 @@ function rebuildScene() {
   }
 }
 
-function buildSphere(stereo, is360) {
-  // Single mono sphere
+function buildSphere() {
   const geo = new THREE.SphereGeometry(500, 64, 32);
   geo.scale(-1, 1, 1);
   const mat = new THREE.MeshBasicMaterial({ map: videoTexture });
   monoMesh = new THREE.Mesh(geo, mat);
   monoMesh.rotation.y = -Math.PI / 2;
-  monoMesh.layers.set(0); // Both eyes
+  monoMesh.layers.set(0);
   scene.add(monoMesh);
 }
 
 function buildStereoSphere(stereoLayout) {
-  // Left eye
   const geoL = new THREE.SphereGeometry(500, 64, 32);
   geoL.scale(-1, 1, 1);
   const uvsL = geoL.attributes.uv.array;
 
-  // Right eye
   const geoR = new THREE.SphereGeometry(500, 64, 32);
   geoR.scale(-1, 1, 1);
   const uvsR = geoR.attributes.uv.array;
 
   if (stereoLayout === 'sbs') {
-    // Left eye: U 0.0 → 0.5
-    for (let i = 0; i < uvsL.length; i += 2) {
-      uvsL[i] *= 0.5;
-    }
-    // Right eye: U 0.5 → 1.0
-    for (let i = 0; i < uvsR.length; i += 2) {
-      uvsR[i] *= 0.5;
-      uvsR[i] += 0.5;
-    }
+    for (let i = 0; i < uvsL.length; i += 2) { uvsL[i] *= 0.5; }
+    for (let i = 0; i < uvsR.length; i += 2) { uvsR[i] *= 0.5; uvsR[i] += 0.5; }
   } else if (stereoLayout === 'tb') {
-    // Left eye: V 0.0 → 0.5 (top half)
-    for (let i = 0; i < uvsL.length; i += 2) {
-      uvsL[i + 1] *= 0.5;
-    }
-    // Right eye: V 0.5 → 1.0 (bottom half)
-    for (let i = 0; i < uvsR.length; i += 2) {
-      uvsR[i + 1] *= 0.5;
-      uvsR[i + 1] += 0.5;
-    }
+    for (let i = 0; i < uvsL.length; i += 2) { uvsL[i + 1] *= 0.5; }
+    for (let i = 0; i < uvsR.length; i += 2) { uvsR[i + 1] *= 0.5; uvsR[i + 1] += 0.5; }
   }
 
   const matL = new THREE.MeshBasicMaterial({ map: videoTexture });
@@ -440,18 +574,17 @@ function buildStereoSphere(stereoLayout) {
 
   leftMesh = new THREE.Mesh(geoL, matL);
   leftMesh.rotation.y = -Math.PI / 2;
-  leftMesh.layers.set(1); // Left eye only
+  leftMesh.layers.set(1);
 
   rightMesh = new THREE.Mesh(geoR, matR);
   rightMesh.rotation.y = -Math.PI / 2;
-  rightMesh.layers.set(2); // Right eye only
+  rightMesh.layers.set(2);
 
   scene.add(leftMesh);
   scene.add(rightMesh);
 }
 
 function buildFlat() {
-  // Flat plane in front of camera — cinema screen style
   const aspect = video.videoWidth / video.videoHeight;
   const height = 4;
   const width = height * aspect;
@@ -497,35 +630,15 @@ function fmt(s) {
 setInterval(() => {
   if (!video || !video.duration) return;
   seekbar.value = (video.currentTime / video.duration) * 1000;
-  timecode.textContent = `${fmt(video.currentTime)} / ${fmt(video.duration)}`;
+  timecodeEl.textContent = `${fmt(video.currentTime)} / ${fmt(video.duration)}`;
 }, 250);
 
 // ── URL param support: ?src=video.mp4&layout=sbs ──
 const params = new URLSearchParams(location.search);
 if (params.get('src')) {
   const srcUrl = params.get('src');
-  const layout = params.get('layout');
-  if (layout) {
-    currentLayout = layout;
-    layoutButtons.forEach(b => b.classList.toggle('active', b.dataset.layout === layout));
-  }
-
-  video = document.createElement('video');
-  video.crossOrigin = 'anonymous';
-  video.loop = true;
-  video.muted = true;
-  video.playsInline = true;
-  video.src = srcUrl;
-
-  video.addEventListener('loadedmetadata', () => {
-    initThree();
-    rebuildScene();
-    video.play();
-    isPlaying = true;
-    btnPlay.textContent = 'pause';
-    ui.classList.add('hidden');
-    playbar.classList.remove('hidden');
-  });
+  const layout = params.get('layout') || 'sbs';
+  loadRemoteVideo(srcUrl, layout, srcUrl.split('/').pop());
 }
 </script>
 </body>
